@@ -14,7 +14,7 @@ const ProjectSettings = (() => {
     tokenDirty = false;
 
     const mount = getMount();
-    mount.style.display = '';
+    mount.style.display = 'block';
     mount.innerHTML = `
       <div class="settings-container">
         <div class="settings-header">
