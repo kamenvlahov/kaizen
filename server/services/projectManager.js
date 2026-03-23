@@ -1,0 +1,134 @@
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+const CONFIG_PATH = path.join(__dirname, '../../config.json');
+
+function readConfig() {
+  const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
+  return JSON.parse(raw);
+}
+
+function writeConfig(config) {
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2) + '\n', 'utf8');
+}
+
+function listProjects() {
+  return readConfig().projects;
+}
+
+function getProject(name) {
+  return readConfig().projects.find(p => p.name === name) || null;
+}
+
+/**
+ * Register a new project.
+ * Creates central tasks dir, symlink, updates .gitignore, injects CLAUDE.md section.
+ */
+function registerProject(name, projectPath) {
+  const config = readConfig();
+
+  if (config.projects.find(p => p.name === name)) {
+    throw new Error(`Project "${name}" is already registered`);
+  }
+
+  if (!fs.existsSync(projectPath)) {
+    throw new Error(`Path does not exist: ${projectPath}`);
+  }
+
+  const tasksRelDir = `projects/${name}/tasks`;
+  const tasksCentralDir = path.join(__dirname, '../../', tasksRelDir);
+  const symlinkPath = path.join(projectPath, '.tasks');
+
+  // 1. Create central tasks dir
+  fs.mkdirSync(tasksCentralDir, { recursive: true });
+
+  // 2. Create symlink (remove stale one first)
+  try {
+    if (fs.lstatSync(symlinkPath)) fs.unlinkSync(symlinkPath);
+  } catch (_) {}
+  fs.symlinkSync(tasksCentralDir, symlinkPath);
+
+  // 3. Update .gitignore
+  const gitignorePath = path.join(projectPath, '.gitignore');
+  const gitignoreEntry = '.tasks\n';
+  if (fs.existsSync(gitignorePath)) {
+    const content = fs.readFileSync(gitignorePath, 'utf8');
+    if (!content.includes('.tasks')) {
+      fs.appendFileSync(gitignorePath, `\n${gitignoreEntry}`);
+    }
+  } else {
+    fs.writeFileSync(gitignorePath, gitignoreEntry);
+  }
+
+  // 4. Inject CLAUDE.md section
+  injectClaudeMd(projectPath);
+
+  // 5. Register in config.json
+  config.projects.push({
+    name,
+    path: projectPath,
+    tasksDir: tasksRelDir,
+    registered: new Date().toISOString(),
+  });
+  writeConfig(config);
+}
+
+/**
+ * Unregister a project (does NOT delete tasks).
+ */
+function unregisterProject(name) {
+  const config = readConfig();
+  const idx = config.projects.findIndex(p => p.name === name);
+  if (idx === -1) throw new Error(`Project "${name}" not found`);
+
+  config.projects.splice(idx, 1);
+  writeConfig(config);
+}
+
+/**
+ * Resolve tasks directory for a registered project.
+ */
+function getTasksDir(name) {
+  const project = getProject(name);
+  if (!project) throw new Error(`Project "${name}" not found`);
+  return path.join(__dirname, '../../', project.tasksDir);
+}
+
+/**
+ * Auto-detect project from a directory path (cwd detection).
+ */
+function detectProject(cwd) {
+  const projects = listProjects();
+  // Longest matching path wins (most specific)
+  const match = projects
+    .filter(p => cwd === p.path || cwd.startsWith(p.path + path.sep))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+  return match || null;
+}
+
+function injectClaudeMd(projectPath) {
+  const claudeMdPath = path.join(projectPath, 'CLAUDE.md');
+  const templatePath = path.join(__dirname, '../../templates/claude-instructions.md');
+  const injection = fs.readFileSync(templatePath, 'utf8');
+
+  if (fs.existsSync(claudeMdPath)) {
+    const content = fs.readFileSync(claudeMdPath, 'utf8');
+    if (!content.includes('## Task System')) {
+      fs.appendFileSync(claudeMdPath, `\n\n${injection}`);
+    }
+  } else {
+    fs.writeFileSync(claudeMdPath, injection);
+  }
+}
+
+module.exports = {
+  readConfig,
+  listProjects,
+  getProject,
+  registerProject,
+  unregisterProject,
+  getTasksDir,
+  detectProject,
+};

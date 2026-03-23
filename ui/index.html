@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaizen</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div class="topbar-left">
+        <span class="logo">⬡ kaizen</span>
+        <nav class="view-tabs">
+          <button class="tab-btn active" data-view="kanban">Kanban</button>
+          <button class="tab-btn" data-view="list">List</button>
+        </nav>
+      </div>
+      <div class="topbar-right">
+        <div id="ws-indicator" class="ws-dot disconnected" title="WebSocket disconnected"></div>
+        <div id="project-switcher-mount"></div>
+        <button id="new-task-btn" class="btn-primary">+ New Task</button>
+      </div>
+    </header>
+
+    <main id="view-container">
+      <div id="kanban-mount"></div>
+      <div id="list-mount" style="display:none"></div>
+    </main>
+  </div>
+
+  <div id="task-detail-overlay" class="overlay hidden"></div>
+  <div id="task-create-overlay" class="overlay hidden"></div>
+
+  <script src="/js/services/api.js"></script>
+  <script src="/js/components/projectSwitcher.js"></script>
+  <script src="/js/components/kanban.js"></script>
+  <script src="/js/components/listView.js"></script>
+  <script src="/js/components/taskDetail.js"></script>
+  <script src="/js/components/taskCreateModal.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
