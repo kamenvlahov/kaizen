@@ -327,6 +327,133 @@ tbody td { padding: 9px 12px; font-size: 13px; }
 }
 .path-suggestion-item:hover, .path-suggestion-item.active { background: var(--bg3); color: var(--accent); }
 
+/* ── Project Settings View ──────────────────────────────────────────────────── */
+#settings-mount {
+  display: none;
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px 16px;
+}
+
+.settings-container {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.settings-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+.btn-back:hover { opacity: 0.8; }
+
+.settings-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.settings-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 20px;
+}
+
+/* Toggle row */
+.settings-toggle-row { margin-bottom: 20px; }
+.toggle-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 22px; cursor: pointer;
+  transition: background 0.2s;
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  left: 2px; top: 2px;
+  background: var(--text-dim);
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); background: #fff; }
+
+/* Token input */
+.token-input-wrap { position: relative; display: flex; align-items: center; }
+.token-input-wrap input { flex: 1; padding-right: 36px; font-family: var(--mono); letter-spacing: 0.05em; }
+.token-toggle {
+  position: absolute; right: 8px;
+  background: none; border: none; cursor: pointer;
+  font-size: 14px; line-height: 1; opacity: 0.6;
+  padding: 0;
+}
+.token-toggle:hover { opacity: 1; }
+
+/* Settings actions */
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.test-result {
+  font-size: 13px;
+  flex: 1;
+}
+.test-result.success { color: var(--done); }
+.test-result.error   { color: var(--blocked); }
+
+/* Gear icon in project switcher */
+.proj-settings-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: var(--radius);
+  line-height: 1;
+  opacity: 0.7;
+}
+.proj-settings-btn:hover { opacity: 1; color: var(--text); background: var(--border); }
+
 /* ── Scrollbar ──────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

@@ -7,9 +7,11 @@ const {
   getProject,
   registerProject,
   unregisterProject,
+  updateGitConfig,
   getTasksDir,
 } = require('../services/projectManager');
 const { parseAllTasks } = require('../services/taskParser');
+const gitService = require('../services/gitService');
 
 // GET /api/projects
 router.get('/', (req, res) => {
@@ -56,6 +58,80 @@ router.delete('/:name', (req, res) => {
   } catch (err) {
     res.status(404).json({ error: err.message });
   }
+});
+
+// GET /api/projects/:name/git-config
+router.get('/:name/git-config', (req, res) => {
+  const project = getProject(req.params.name);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+
+  const remoteUrl = gitService.getRemoteUrl(project.path);
+  const detectedPlatform = gitService.detectPlatform(remoteUrl);
+
+  const git = project.git || {};
+  const token = git.token || '';
+  const maskedToken = token ? '●'.repeat(Math.max(0, token.length - 4)) + token.slice(-4) : '';
+
+  res.json({
+    enabled: git.enabled || false,
+    platform: git.platform || 'auto-detect',
+    token: maskedToken,
+    baseBranch: git.baseBranch || 'main',
+    reviewer: git.reviewer || '',
+    remoteUrl: remoteUrl || '',
+    detectedPlatform: detectedPlatform || null,
+  });
+});
+
+// PUT /api/projects/:name/git-config
+router.put('/:name/git-config', (req, res) => {
+  const project = getProject(req.params.name);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+
+  const { enabled, platform, token, baseBranch, reviewer } = req.body;
+  const existing = project.git || {};
+
+  const newGit = {
+    enabled: !!enabled,
+    platform: platform || 'auto-detect',
+    baseBranch: baseBranch || 'main',
+    reviewer: reviewer || '',
+    remoteUrl: existing.remoteUrl || gitService.getRemoteUrl(project.path) || '',
+  };
+
+  // Only update token if user sent a real (non-masked) value
+  if (token && !token.startsWith('●')) {
+    newGit.token = token;
+  } else {
+    newGit.token = existing.token || '';
+  }
+
+  try {
+    updateGitConfig(req.params.name, newGit);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/projects/:name/git-test
+router.post('/:name/git-test', async (req, res) => {
+  const project = getProject(req.params.name);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+
+  const git = project.git || {};
+  let platform = git.platform;
+
+  if (!platform || platform === 'auto-detect') {
+    const remoteUrl = gitService.getRemoteUrl(project.path);
+    platform = gitService.detectPlatform(remoteUrl);
+  }
+
+  if (!platform) return res.json({ success: false, error: 'Could not detect platform. Set it manually.' });
+  if (!git.token) return res.json({ success: false, error: 'No token configured' });
+
+  const result = await gitService.testConnection(platform, git.token);
+  res.json(result);
 });
 
 module.exports = router;

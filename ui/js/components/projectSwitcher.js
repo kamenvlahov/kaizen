@@ -35,7 +35,10 @@ const ProjectSwitcher = (() => {
       <div class="project-dropdown-item ${activeProject && activeProject.name === p.name ? 'active' : ''}"
            data-name="${p.name}">
         <span>${p.name}</span>
-        <span class="proj-count">${p.stats ? p.stats.total : '?'} tasks</span>
+        <span style="display:flex;align-items:center;gap:6px">
+          <span class="proj-count">${p.stats ? p.stats.total : '?'} tasks</span>
+          <button class="proj-settings-btn" data-settings="${p.name}" title="Git settings">⚙</button>
+        </span>
       </div>`).join('');
 
     dd.innerHTML = `
@@ -44,10 +47,20 @@ const ProjectSwitcher = (() => {
       <div class="project-dropdown-add" id="ps-add">+ Register project</div>`;
 
     dd.querySelectorAll('.project-dropdown-item').forEach(el => {
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.proj-settings-btn')) return;
         const p = projects.find(x => x.name === el.dataset.name);
         if (p) switchTo(p);
         dd.classList.remove('open');
+      });
+    });
+
+    dd.querySelectorAll('.proj-settings-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dd.classList.remove('open');
+        const p = projects.find(x => x.name === btn.dataset.settings);
+        if (p) openSettings(p);
       });
     });
 
@@ -61,6 +74,13 @@ const ProjectSwitcher = (() => {
     activeProject = project;
     updateDropdown();
     if (onSwitch) onSwitch(project);
+  }
+
+  function openSettings(project) {
+    ProjectSettings.open(project, () => {
+      // Restore the normal view after closing settings
+      if (onSwitch && activeProject) onSwitch(activeProject);
+    });
   }
 
   async function load() {

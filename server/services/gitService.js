@@ -167,4 +167,58 @@ function createGitHubPR(git, branchName, taskId, taskTitle, taskDescription) {
   }, payload).then(json => json.html_url);
 }
 
-module.exports = { createBranch, pushAndCreateMR, detectPlatform, getRemoteUrl };
+function httpsGet(options) {
+  return new Promise((resolve, reject) => {
+    const req = https.request({ ...options, method: 'GET' }, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (res.statusCode >= 400) {
+            reject(new Error(`HTTP ${res.statusCode}: ${json.message || JSON.stringify(json)}`));
+          } else {
+            resolve(json);
+          }
+        } catch (e) {
+          reject(new Error(`Failed to parse response: ${data}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+/**
+ * Test git platform connection using the provided token.
+ * @returns {Promise<{ success: boolean, username?: string, error?: string }>}
+ */
+async function testConnection(platform, token) {
+  try {
+    if (platform === 'gitlab') {
+      const data = await httpsGet({
+        hostname: 'gitlab.com',
+        path: '/api/v4/user',
+        headers: { 'PRIVATE-TOKEN': token },
+      });
+      return { success: true, username: data.username };
+    } else if (platform === 'github') {
+      const data = await httpsGet({
+        hostname: 'api.github.com',
+        path: '/user',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'User-Agent': 'kaizen-task-manager',
+        },
+      });
+      return { success: true, username: data.login };
+    } else {
+      return { success: false, error: `Unknown platform: ${platform}` };
+    }
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+module.exports = { createBranch, pushAndCreateMR, detectPlatform, getRemoteUrl, testConnection };
