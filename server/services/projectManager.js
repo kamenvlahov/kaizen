@@ -6,6 +6,11 @@ const path = require('path');
 const CONFIG_PATH = path.join(__dirname, '../../config.json');
 
 function readConfig() {
+  if (!fs.existsSync(CONFIG_PATH)) {
+    const defaults = { port: 3000, projects: [] };
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(defaults, null, 2) + '\n', 'utf8');
+    return defaults;
+  }
   const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
   return JSON.parse(raw);
 }
