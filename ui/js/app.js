@@ -25,6 +25,10 @@
     document.getElementById('project-switcher-mount'),
     async project => {
       activeProject = project;
+      // Hide settings, show normal views
+      document.getElementById('settings-mount').style.display = 'none';
+      kanbanMount.style.display = activeView === 'kanban' ? '' : 'none';
+      listMount.style.display   = activeView === 'list'   ? '' : 'none';
       // Notify WebSocket server
       if (window._socket) window._socket.emit('project:changed', { name: project.name });
       await Kanban.setProject(project);

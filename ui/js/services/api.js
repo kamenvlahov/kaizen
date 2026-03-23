@@ -34,5 +34,10 @@ const API = (() => {
     getBoard:   (project)            => req('GET',   `/projects/${project}/board`),
     moveTask:   (project, taskId, newStatus) =>
       req('PATCH', `/projects/${project}/board/move`, { taskId, newStatus }),
+
+    // Git config
+    getGitConfig:  (project)       => req('GET',  `/projects/${project}/git-config`),
+    saveGitConfig: (project, body) => req('PUT',  `/projects/${project}/git-config`, body),
+    testGitConfig: (project)       => req('POST', `/projects/${project}/git-test`, {}),
   };
 })();

@@ -86,6 +86,17 @@ function registerProject(name, projectPath, gitConfig = null) {
 }
 
 /**
+ * Update git config for a registered project.
+ */
+function updateGitConfig(name, gitConfig) {
+  const config = readConfig();
+  const project = config.projects.find(p => p.name === name);
+  if (!project) throw new Error(`Project "${name}" not found`);
+  project.git = gitConfig;
+  writeConfig(config);
+}
+
+/**
  * Unregister a project (does NOT delete tasks).
  */
 function unregisterProject(name) {
@@ -139,6 +150,7 @@ module.exports = {
   getProject,
   registerProject,
   unregisterProject,
+  updateGitConfig,
   getTasksDir,
   detectProject,
 };
