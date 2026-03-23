@@ -3,6 +3,7 @@ const ProjectSwitcher = (() => {
   let projects = [];
   let activeProject = null;
   let onSwitch = null;
+  let onOpenSettings = null;
 
   function render(container) {
     container.innerHTML = `
@@ -77,10 +78,13 @@ const ProjectSwitcher = (() => {
   }
 
   function openSettings(project) {
-    ProjectSettings.open(project, () => {
-      // Restore the normal view after closing settings
-      if (onSwitch && activeProject) onSwitch(activeProject);
-    });
+    if (onOpenSettings) {
+      onOpenSettings(project);
+    } else {
+      ProjectSettings.open(project, () => {
+        if (onSwitch && activeProject) onSwitch(activeProject);
+      });
+    }
   }
 
   async function load() {
@@ -238,8 +242,9 @@ const ProjectSwitcher = (() => {
   }
 
   return {
-    init(container, cb) {
+    init(container, cb, onSettings) {
       onSwitch = cb;
+      onOpenSettings = onSettings || null;
       render(container);
       load();
     },

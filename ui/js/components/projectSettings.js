@@ -13,12 +13,6 @@ const ProjectSettings = (() => {
     onBack = backCallback;
     tokenDirty = false;
 
-    // Hide other views
-    const kanbanMount = document.getElementById('kanban-mount');
-    const listMount   = document.getElementById('list-mount');
-    if (kanbanMount) kanbanMount.style.display = 'none';
-    if (listMount)   listMount.style.display   = 'none';
-
     const mount = getMount();
     mount.style.display = '';
     mount.innerHTML = `

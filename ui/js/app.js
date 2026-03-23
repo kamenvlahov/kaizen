@@ -1,9 +1,23 @@
 /* Main app — view routing, WebSocket, orchestration */
 (async () => {
-  const kanbanMount = document.getElementById('kanban-mount');
-  const listMount   = document.getElementById('list-mount');
+  const kanbanMount   = document.getElementById('kanban-mount');
+  const listMount     = document.getElementById('list-mount');
+  const settingsMount = document.getElementById('settings-mount');
   let activeView = 'kanban';
   let activeProject = null;
+
+  // ── Helpers to show/hide views ───────────────────────────────────────────────
+  function showNormalViews() {
+    settingsMount.style.display = 'none';
+    kanbanMount.style.display   = activeView === 'kanban' ? '' : 'none';
+    listMount.style.display     = activeView === 'list'   ? '' : 'none';
+  }
+
+  function showSettingsView(project) {
+    kanbanMount.style.display = 'none';
+    listMount.style.display   = 'none';
+    ProjectSettings.open(project, showNormalViews);
+  }
 
   // ── View switching ───────────────────────────────────────────────────────────
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -25,15 +39,13 @@
     document.getElementById('project-switcher-mount'),
     async project => {
       activeProject = project;
-      // Hide settings, show normal views
-      document.getElementById('settings-mount').style.display = 'none';
-      kanbanMount.style.display = activeView === 'kanban' ? '' : 'none';
-      listMount.style.display   = activeView === 'list'   ? '' : 'none';
+      showNormalViews();
       // Notify WebSocket server
       if (window._socket) window._socket.emit('project:changed', { name: project.name });
       await Kanban.setProject(project);
       await ListView.setProject(project);
-    }
+    },
+    showSettingsView
   );
 
   // ── Kanban & List init ───────────────────────────────────────────────────────
