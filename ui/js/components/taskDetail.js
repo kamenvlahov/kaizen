@@ -78,7 +78,8 @@ const TaskDetail = (() => {
                 : `<span class="meta-value">${task.assignee}</span>`}
             </div>
             ${task.estimate ? `<div class="meta-row"><span class="meta-label">Estimate</span><span class="meta-value mono">${task.estimate}</span></div>` : ''}
-            ${task.branch   ? `<div class="meta-row"><span class="meta-label">Branch</span><span class="meta-value mono">${task.branch}</span></div>` : ''}
+            ${task.branch   ? `<div class="meta-row"><span class="meta-label">Branch</span><span class="meta-value mono">${escHtml(task.branch)}</span></div>` : ''}
+            ${task.mr_url   ? `<div class="meta-row"><span class="meta-label">MR / PR</span><span class="meta-value"><a href="${escHtml(task.mr_url)}" target="_blank" rel="noopener" style="color:var(--accent)">${escHtml(task.mr_url)}</a></span></div>` : ''}
             ${task.tags && task.tags.length ? `<div class="meta-row"><span class="meta-label">Tags</span><span class="meta-value">${task.tags.map(t=>`<span class="tag-chip">${t}</span>`).join(' ')}</span></div>` : ''}
             ${task.dependencies && task.dependencies.length
               ? `<div class="meta-row"><span class="meta-label">Dependencies</span>

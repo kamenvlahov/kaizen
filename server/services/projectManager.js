@@ -25,8 +25,11 @@ function getProject(name) {
 /**
  * Register a new project.
  * Creates central tasks dir, symlink, updates .gitignore, injects CLAUDE.md section.
+ * @param {string} name
+ * @param {string} projectPath
+ * @param {object|null} gitConfig - Optional git integration config
  */
-function registerProject(name, projectPath) {
+function registerProject(name, projectPath, gitConfig = null) {
   const config = readConfig();
 
   if (config.projects.find(p => p.name === name)) {
@@ -66,12 +69,14 @@ function registerProject(name, projectPath) {
   injectClaudeMd(projectPath);
 
   // 5. Register in config.json
-  config.projects.push({
+  const entry = {
     name,
     path: projectPath,
     tasksDir: tasksRelDir,
     registered: new Date().toISOString(),
-  });
+  };
+  if (gitConfig) entry.git = gitConfig;
+  config.projects.push(entry);
   writeConfig(config);
 }
 

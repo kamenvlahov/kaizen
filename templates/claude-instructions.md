@@ -23,6 +23,15 @@ Tasks use YAML frontmatter (between `---` markers) + Markdown body.
 Frontmatter fields: id, title, status, priority, created, updated, assignee, dependencies, tags, estimate, branch.
 Body sections: ## Description, ## Acceptance Criteria, ## Subtasks, ## Context, ## Notes.
 
+### Git Workflow
+
+If Git integration is enabled for this project:
+- When you change a task status to `in-progress`, a branch `task/TASK-{NNN}` is created automatically
+- Commit your work to this branch
+- When you change status to `review`, the branch is pushed and a Merge Request / Pull Request is created automatically
+- ALWAYS commit and push your changes BEFORE changing status to `review`
+- The `branch` and `mr_url` frontmatter fields are auto-populated — do not edit them manually
+
 ### Rules
 
 - NEVER change a task's `id` or `created` fields
