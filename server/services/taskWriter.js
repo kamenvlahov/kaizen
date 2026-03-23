@@ -74,6 +74,7 @@ function buildFrontmatter(task) {
   }
   if (task.estimate) fm.estimate = task.estimate;
   if (task.branch) fm.branch = task.branch;
+  if (task.mr_url) fm.mr_url = task.mr_url;
 
   return fm;
 }

@@ -29,6 +29,7 @@ function parseTask(filePath) {
     tags: frontmatter.tags || [],
     estimate: frontmatter.estimate || null,
     branch: frontmatter.branch || null,
+    mr_url: frontmatter.mr_url || null,
     body: content.trim(),
     filePath,
   };

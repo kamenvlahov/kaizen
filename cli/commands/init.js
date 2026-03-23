@@ -5,6 +5,7 @@ const os = require('os');
 const fs = require('fs');
 const chalk = require('chalk');
 const { registerProject } = require('../../server/services/projectManager');
+const { getRemoteUrl, detectPlatform } = require('../../server/services/gitService');
 
 module.exports = async function init(options) {
   const name = options.name.trim();
@@ -23,12 +24,75 @@ module.exports = async function init(options) {
 
   console.log(`  Resolved  : ${chalk.cyan(projectPath)}`);
 
+  // Detect git remote for auto-suggest
+  const remoteUrl = getRemoteUrl(projectPath);
+  const detectedPlatform = detectPlatform(remoteUrl);
+
+  const { default: inquirer } = await import('inquirer');
+
+  const { enableGit } = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'enableGit',
+      message: 'Enable Git integration? (auto-branch on in-progress, auto-MR on review)',
+      default: false,
+    },
+  ]);
+
+  let gitConfig = null;
+
+  if (enableGit) {
+    const gitAnswers = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'platform',
+        message: 'Git platform:',
+        choices: ['gitlab', 'github', 'skip'],
+        default: detectedPlatform || 'gitlab',
+      },
+      {
+        type: 'password',
+        name: 'token',
+        message: answers => answers.platform === 'gitlab' ? 'GitLab API token (PRIVATE-TOKEN):' : 'GitHub API token (Bearer):',
+        when: answers => answers.platform !== 'skip',
+        validate: v => v.trim() ? true : 'Token is required',
+      },
+      {
+        type: 'input',
+        name: 'baseBranch',
+        message: 'Base branch:',
+        default: 'main',
+        when: answers => answers.platform !== 'skip',
+      },
+      {
+        type: 'input',
+        name: 'reviewer',
+        message: 'Default MR/PR reviewer (optional):',
+        when: answers => answers.platform !== 'skip',
+      },
+    ]);
+
+    if (gitAnswers.platform !== 'skip') {
+      gitConfig = {
+        enabled: true,
+        platform: gitAnswers.platform,
+        token: gitAnswers.token.trim(),
+        baseBranch: gitAnswers.baseBranch.trim() || 'main',
+        reviewer: gitAnswers.reviewer ? gitAnswers.reviewer.trim() : '',
+        remoteUrl: remoteUrl || '',
+      };
+    }
+  }
+
   try {
-    registerProject(name, projectPath);
+    registerProject(name, projectPath, gitConfig);
     console.log(chalk.green(`✓ Project "${name}" registered`));
     console.log(`  Tasks dir : ${chalk.cyan(`projects/${name}/tasks/`)}`);
     console.log(`  Symlink   : ${chalk.cyan(`${projectPath}/.tasks`)}`);
     console.log(`  CLAUDE.md : ${chalk.cyan('injected task system instructions')}`);
+    if (gitConfig) {
+      console.log(`  Git       : ${chalk.cyan(`${gitConfig.platform} / base: ${gitConfig.baseBranch}`)}`);
+    }
   } catch (err) {
     console.error(chalk.red(`Error: ${err.message}`));
     process.exit(1);

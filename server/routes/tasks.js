@@ -8,6 +8,7 @@ const { getProject, getTasksDir } = require('../services/projectManager');
 const { parseTask, parseAllTasks, validateTask, VALID_STATUSES } = require('../services/taskParser');
 const { writeTask, updateTask, deleteTask } = require('../services/taskWriter');
 const { nextId } = require('../utils/idGenerator');
+const gitService = require('../services/gitService');
 
 function requireProject(req, res, next) {
   const project = getProject(req.params.name);
@@ -16,6 +17,7 @@ function requireProject(req, res, next) {
   req.tasksDir = getTasksDir(project.name);
   next();
 }
+
 
 function taskFilePath(tasksDir, taskId) {
   return path.join(tasksDir, `${taskId.toUpperCase()}.md`);
@@ -92,18 +94,52 @@ router.put('/:id', requireProject, (req, res) => {
 // PATCH /api/projects/:name/tasks/:id  (partial update)
 router.patch('/:id', requireProject, (req, res) => {
   const filePath = taskFilePath(req.tasksDir, req.params.id);
+  let task;
   try {
-    parseTask(filePath); // verify exists
+    task = parseTask(filePath);
   } catch (err) {
     if (err.code === 'ENOENT') return res.status(404).json({ error: 'Task not found' });
   }
 
-  if (req.body.status && !VALID_STATUSES.includes(req.body.status)) {
-    return res.status(400).json({ error: `Invalid status: ${req.body.status}` });
+  const newStatus = req.body.status;
+  if (newStatus && !VALID_STATUSES.includes(newStatus)) {
+    return res.status(400).json({ error: `Invalid status: ${newStatus}` });
   }
 
   updateTask(filePath, req.body);
   res.json(parseTask(filePath));
+
+  // Git integration (async, non-blocking — file watcher broadcasts any task updates)
+  if (newStatus && newStatus !== task.status) {
+    const project = req.project;
+    if (project && project.git && project.git.enabled) {
+      const taskId = req.params.id.toUpperCase();
+      if (newStatus === 'in-progress') {
+        setImmediate(() => {
+          const result = gitService.createBranch(project.path, taskId, project.git.baseBranch);
+          if (result.success) {
+            updateTask(filePath, { branch: result.branch });
+          } else {
+            console.warn(`[git] Branch creation failed for ${taskId}: ${result.error}`);
+          }
+        });
+      } else if (newStatus === 'review') {
+        setImmediate(async () => {
+          try {
+            const current = parseTask(filePath);
+            const result = await gitService.pushAndCreateMR(project, taskId, current.title, current.body);
+            if (result.success) {
+              updateTask(filePath, { mr_url: result.mrUrl });
+            } else {
+              console.warn(`[git] MR creation failed for ${taskId}: ${result.error}`);
+            }
+          } catch (err) {
+            console.warn(`[git] Unexpected error for ${taskId}: ${err.message}`);
+          }
+        });
+      }
+    }
+  }
 });
 
 // DELETE /api/projects/:name/tasks/:id
