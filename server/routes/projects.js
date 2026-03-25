@@ -150,16 +150,20 @@ router.post('/:name/start-claude', (req, res) => {
   const wslDistro = process.env.WSL_DISTRO_NAME || 'Ubuntu';
   const wtExe = process.env.WT_EXE || 'wt.exe';
   const uncPath = `\\\\wsl$\\${wslDistro}${projectPath.replace(/\//g, '\\')}`;
-  const command = `bash -c "claude"`;
-
   try {
-    spawn(wtExe, ['new-tab', '--startingDirectory', uncPath, 'bash', '-lc', 'claude'], {
+    const child = spawn(wtExe, ['new-tab', '--startingDirectory', uncPath, 'wsl.exe', '-e', 'bash', '-lc', 'claude'], {
       detached: true,
       stdio: 'ignore',
-    }).unref();
+    });
 
+    child.on('error', (err) => {
+      console.error(`[start-claude] spawn error: ${err.message} (code: ${err.code}, path: ${wtExe})`);
+    });
+
+    child.unref();
     res.json({ success: true });
   } catch (err) {
+    console.error(`[start-claude] failed to spawn: ${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });
