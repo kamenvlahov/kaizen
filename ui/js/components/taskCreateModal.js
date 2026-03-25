@@ -51,9 +51,7 @@ const TaskCreateModal = (() => {
         <div class="modal-body">
           <div class="form-row">
             <label>Title *</label>
-            <div style="display:flex;gap:8px;align-items:center">
-              <input type="text" id="tc-title" placeholder="What needs to be done?" style="flex:1">
-            </div>
+            <input type="text" id="tc-title" placeholder="What needs to be done?">
           </div>
           <div class="form-grid">
             <div class="form-row">
@@ -74,30 +72,10 @@ const TaskCreateModal = (() => {
               </select>
             </div>
           </div>
-          <div class="form-grid">
-            <div class="form-row">
-              <label>Estimate</label>
-              <input type="text" id="tc-estimate" placeholder="e.g. 2h, 1d">
-            </div>
-            <div class="form-row">
-              <label>Branch</label>
-              <input type="text" id="tc-branch" placeholder="feature/my-branch">
-            </div>
-          </div>
           <div class="form-row">
             <label>Tags</label>
             <input type="text" id="tc-tags" placeholder="backend, api, auth (comma-separated)">
           </div>
-          ${existingTasks.length ? `
-          <div class="form-row">
-            <label>Dependencies</label>
-            <div id="tc-deps" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-              ${existingTasks.map(t => `
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:3px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px">
-                  <input type="checkbox" value="${t.id}"> <span style="font-family:var(--mono)">${t.id}</span> <span style="color:var(--text-dim)">${escHtml(t.title.slice(0,30))}</span>
-                </label>`).join('')}
-            </div>
-          </div>` : ''}
           <div class="form-row">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
               <label style="margin-bottom:0">Description</label>
@@ -120,9 +98,34 @@ const TaskCreateModal = (() => {
           </div>
           <div class="form-row">
             <label>Acceptance Criteria</label>
-            <textarea id="tc-criteria" rows="4" placeholder="- [ ] Criterion 1&#10;- [ ] Criterion 2"></textarea>
+            <textarea id="tc-criteria" rows="3" placeholder="- [ ] Criterion 1&#10;- [ ] Criterion 2"></textarea>
             <p class="form-hint">Each line becomes a checklist item.</p>
           </div>
+          <details style="margin-top:8px">
+            <summary style="cursor:pointer;font-size:12px;color:var(--text-dim);user-select:none;padding:4px 0">Advanced options</summary>
+            <div style="padding-top:10px;display:flex;flex-direction:column;gap:10px">
+              <div class="form-grid">
+                <div class="form-row">
+                  <label>Estimate</label>
+                  <input type="text" id="tc-estimate" placeholder="e.g. 2h, 1d">
+                </div>
+                <div class="form-row">
+                  <label>Branch</label>
+                  <input type="text" id="tc-branch" placeholder="feature/my-branch">
+                </div>
+              </div>
+              ${existingTasks.length ? `
+              <div class="form-row">
+                <label>Dependencies</label>
+                <div id="tc-deps" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+                  ${existingTasks.map(t => `
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:3px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+                      <input type="checkbox" value="${t.id}"> <span style="font-family:var(--mono)">${t.id}</span> <span style="color:var(--text-dim)">${escHtml(t.title.slice(0,30))}</span>
+                    </label>`).join('')}
+                </div>
+              </div>` : ''}
+            </div>
+          </details>
         </div>
         <div class="modal-footer">
           <button class="btn-secondary" id="tc-cancel">Cancel</button>
