@@ -7,7 +7,12 @@
     "kaizen": "./cli/kaizen.js"
   },
   "scripts": {
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "test": "jest"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch": ["**/tests/**/*.test.js"]
   },
   "dependencies": {
     "chalk": "^4.1.2",
@@ -18,5 +23,9 @@
     "gray-matter": "^4.0.3",
     "inquirer": "^9.0.0",
     "socket.io": "^4.7.0"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0"
   }
 }
