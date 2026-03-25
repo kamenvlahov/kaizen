@@ -3,6 +3,8 @@ const TaskCreateModal = (() => {
   let currentProject = null;
   let onCreated = null;
   let existingTasks = [];
+  let availableModels = [];
+  let selectedModel = null;
 
   async function open(project, onCreatedCb) {
     currentProject = project;
@@ -12,7 +14,29 @@ const TaskCreateModal = (() => {
     } catch (_) {
       existingTasks = [];
     }
+    // Load models in background — don't block modal open
+    loadModels();
     render();
+  }
+
+  async function loadModels() {
+    try {
+      const data = await API.getAiModels();
+      availableModels = data.models || [];
+      selectedModel = data.default || (availableModels[0] || null);
+      // Update model selector if modal is still open
+      const sel = document.getElementById('tc-ai-model');
+      if (sel) {
+        sel.innerHTML = availableModels.map(m =>
+          `<option value="${escHtml(m)}" ${m === selectedModel ? 'selected' : ''}>${escHtml(m)}</option>`
+        ).join('');
+        sel.closest('.tc-ai-model-row').style.display = availableModels.length ? 'flex' : 'none';
+      }
+    } catch (_) {
+      availableModels = [];
+      const row = document.getElementById('tc-ai-model')?.closest('.tc-ai-model-row');
+      if (row) row.style.display = 'none';
+    }
   }
 
   function render() {
@@ -27,7 +51,9 @@ const TaskCreateModal = (() => {
         <div class="modal-body">
           <div class="form-row">
             <label>Title *</label>
-            <input type="text" id="tc-title" placeholder="What needs to be done?">
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="text" id="tc-title" placeholder="What needs to be done?" style="flex:1">
+            </div>
           </div>
           <div class="form-grid">
             <div class="form-row">
@@ -73,8 +99,24 @@ const TaskCreateModal = (() => {
             </div>
           </div>` : ''}
           <div class="form-row">
-            <label>Description</label>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+              <label style="margin-bottom:0">Description</label>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="tc-ai-model-row" style="display:none;align-items:center;gap:6px">
+                  <select id="tc-ai-model" style="font-size:11px;padding:2px 6px;height:auto;border:1px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text);cursor:pointer"></select>
+                </div>
+                <button type="button" id="tc-refine-btn" class="btn-secondary" style="font-size:11px;padding:3px 10px;height:auto">✨ Refine</button>
+              </div>
+            </div>
             <textarea id="tc-description" rows="4" placeholder="Describe the task…"></textarea>
+          </div>
+          <div id="tc-refine-preview" style="display:none" class="form-row">
+            <label>AI Refined Preview</label>
+            <div id="tc-refine-content" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px;font-size:12px"></div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button type="button" id="tc-apply-btn" class="btn-primary" style="font-size:12px;padding:5px 14px">Apply</button>
+              <button type="button" id="tc-discard-btn" class="btn-secondary" style="font-size:12px;padding:5px 14px">Discard</button>
+            </div>
           </div>
           <div class="form-row">
             <label>Acceptance Criteria</label>
@@ -91,10 +133,110 @@ const TaskCreateModal = (() => {
     overlay.querySelector('#tc-close').addEventListener('click', close);
     overlay.querySelector('#tc-cancel').addEventListener('click', close);
     overlay.querySelector('#tc-create').addEventListener('click', create);
+    overlay.querySelector('#tc-refine-btn').addEventListener('click', refine);
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
     // Focus title
     setTimeout(() => overlay.querySelector('#tc-title').focus(), 50);
+  }
+
+  // Holds the latest refined result so Apply can use it
+  let _refinedResult = null;
+
+  async function refine() {
+    const overlay = document.getElementById('task-create-overlay');
+    const title = overlay.querySelector('#tc-title').value.trim();
+    const description = overlay.querySelector('#tc-description').value.trim();
+
+    if (!title && !description) {
+      overlay.querySelector('#tc-title').focus();
+      overlay.querySelector('#tc-title').style.borderColor = 'var(--blocked)';
+      return;
+    }
+
+    const btn = overlay.querySelector('#tc-refine-btn');
+    const preview = overlay.querySelector('#tc-refine-preview');
+    const content = overlay.querySelector('#tc-refine-content');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Refining…';
+    preview.style.display = 'none';
+    _refinedResult = null;
+
+    const modelSel = overlay.querySelector('#tc-ai-model');
+    const model = modelSel ? modelSel.value : undefined;
+
+    try {
+      const result = await API.refineTask({ title, description, model });
+      _refinedResult = result;
+
+      const subtasksList = result.subtasks.length
+        ? result.subtasks.map(s => `<li style="margin-bottom:4px">${escHtml(s)}</li>`).join('')
+        : '<li style="color:var(--text-dim)">—</li>';
+      const skillsList = result.suggestedSkills.length
+        ? result.suggestedSkills.map(s => `<span style="display:inline-block;padding:1px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;font-size:11px;margin:2px">${escHtml(s)}</span>`).join('')
+        : '<span style="color:var(--text-dim)">—</span>';
+
+      content.innerHTML = `
+        <div style="margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Refined Title</div>
+          <div style="color:var(--text-bright)">${escHtml(result.refinedTitle)}</div>
+        </div>
+        <div style="margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Refined Description</div>
+          <div style="white-space:pre-wrap">${escHtml(result.refinedDescription)}</div>
+        </div>
+        <div style="margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Subtasks</div>
+          <ul style="margin:0;padding-left:18px">${subtasksList}</ul>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Suggested Skills</div>
+          <div>${skillsList}</div>
+        </div>`;
+
+      preview.style.display = 'block';
+
+      overlay.querySelector('#tc-apply-btn').addEventListener('click', applyRefined);
+      overlay.querySelector('#tc-discard-btn').addEventListener('click', () => {
+        preview.style.display = 'none';
+        _refinedResult = null;
+      });
+    } catch (err) {
+      content.innerHTML = `<div style="color:var(--blocked)">${escHtml(err.message)}</div>`;
+      preview.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '✨ Refine';
+    }
+  }
+
+  function applyRefined() {
+    if (!_refinedResult) return;
+    const overlay = document.getElementById('task-create-overlay');
+
+    if (_refinedResult.refinedTitle) {
+      overlay.querySelector('#tc-title').value = _refinedResult.refinedTitle;
+    }
+
+    const parts = [];
+    if (_refinedResult.refinedDescription) parts.push(_refinedResult.refinedDescription);
+    if (_refinedResult.subtasks.length) {
+      parts.push('\n**Subtasks:**\n' + _refinedResult.subtasks.map(s => `- [ ] ${s}`).join('\n'));
+    }
+    if (parts.length) {
+      overlay.querySelector('#tc-description').value = parts.join('\n\n');
+    }
+
+    if (_refinedResult.suggestedSkills.length) {
+      const tagsInput = overlay.querySelector('#tc-tags');
+      const existing = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean);
+      const merged = [...new Set([...existing, ..._refinedResult.suggestedSkills])];
+      tagsInput.value = merged.join(', ');
+    }
+
+    overlay.querySelector('#tc-refine-preview').style.display = 'none';
+    _refinedResult = null;
   }
 
   async function create() {
@@ -146,6 +288,7 @@ const TaskCreateModal = (() => {
   }
 
   function close() {
+    _refinedResult = null;
     const overlay = document.getElementById('task-create-overlay');
     overlay.classList.add('hidden');
     overlay.innerHTML = '';

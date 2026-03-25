@@ -39,5 +39,9 @@ const API = (() => {
     getGitConfig:  (project)       => req('GET',  `/projects/${project}/git-config`),
     saveGitConfig: (project, body) => req('PUT',  `/projects/${project}/git-config`, body),
     testGitConfig: (project)       => req('POST', `/projects/${project}/git-test`, {}),
+
+    // AI
+    getAiModels:  ()     => req('GET',  '/ai/models'),
+    refineTask:   (body) => req('POST', '/ai/refine-task', body),
   };
 })();
