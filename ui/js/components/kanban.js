@@ -7,7 +7,6 @@ const Kanban = (() => {
     { status: 'review',      label: 'Review' },
     { status: 'done',        label: 'Done' },
     { status: 'blocked',     label: 'Blocked' },
-    { status: 'archived',    label: 'Archived' },
   ];
 
   let currentProject = null;

@@ -49,6 +49,7 @@ const ListView = (() => {
 
   function filteredSorted() {
     let tasks = allTasks.filter(t => {
+      if (!filters.status && t.status === 'archived') return false;
       if (filters.search && !t.title.toLowerCase().includes(filters.search.toLowerCase()) && !t.id.toLowerCase().includes(filters.search.toLowerCase())) return false;
       if (filters.status   && t.status   !== filters.status)   return false;
       if (filters.priority && t.priority !== filters.priority) return false;
