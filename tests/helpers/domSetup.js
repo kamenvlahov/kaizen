@@ -7,6 +7,7 @@ function setupDOM() {
     <div id="kanban-mount"></div>
     <div id="list-mount"></div>
     <div id="settings-mount" style="display:none"></div>
+    <button id="start-claude-btn" style="display:none"></button>
     <button id="new-task-btn"></button>
     <span id="ws-indicator"></span>
     <button class="tab-btn" data-view="kanban" class="active">Kanban</button>
