@@ -58,7 +58,7 @@ kaizen edit <taskId> [--project <name>]                # Opens $EDITOR
 kaizen delete <taskId> [--project <name>]
 ```
 
-**Valid statuses:** `todo` · `in-progress` · `review` · `done` · `blocked`
+**Valid statuses:** `backlog` · `todo` · `in-progress` · `review` · `done` · `blocked` · `archived`
 **Valid priorities:** `critical` · `high` · `medium` · `low`
 
 When running a command from inside a registered project directory the `--project` flag is optional — Kaizen auto-detects the project from the current working directory.

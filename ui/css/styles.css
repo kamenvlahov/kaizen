@@ -21,6 +21,8 @@
   --review:      #d69e2e;
   --done:        #38a169;
   --blocked:     #e53e3e;
+  --backlog:     #9f7aea;
+  --archived:    #718096;
 
   --radius: 6px;
   --mono: 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
@@ -138,6 +140,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .kanban-col[data-status="review"]      .kanban-col-title { color: var(--review); }
 .kanban-col[data-status="done"]        .kanban-col-title { color: var(--done); }
 .kanban-col[data-status="blocked"]     .kanban-col-title { color: var(--blocked); }
+.kanban-col[data-status="backlog"]     .kanban-col-title { color: var(--backlog); }
+.kanban-col[data-status="archived"]    .kanban-col-title { color: var(--archived); }
 
 /* drop target highlight */
 .kanban-col-body.drag-over { background: rgba(79,126,248,0.07); border-radius: 4px; }
@@ -212,6 +216,8 @@ tbody td { padding: 9px 12px; font-size: 13px; }
 .status-review      { background: rgba(214,158,46,0.2);  color: var(--review); }
 .status-done        { background: rgba(56,161,105,0.2);  color: var(--done); }
 .status-blocked     { background: rgba(229,62,62,0.2);   color: var(--blocked); }
+.status-backlog     { background: rgba(159,122,234,0.2); color: var(--backlog); }
+.status-archived    { background: rgba(113,128,150,0.2); color: var(--archived); }
 
 .priority-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
 .dot-critical { background: var(--critical); }
@@ -284,11 +290,15 @@ tbody td { padding: 9px 12px; font-size: 13px; }
 .status-btn[data-s="review"]      { color: var(--review);      border-color: var(--review); }
 .status-btn[data-s="done"]        { color: var(--done);        border-color: var(--done); }
 .status-btn[data-s="blocked"]     { color: var(--blocked);     border-color: var(--blocked); }
+.status-btn[data-s="backlog"]     { color: var(--backlog);     border-color: var(--backlog); }
+.status-btn[data-s="archived"]    { color: var(--archived);    border-color: var(--archived); }
 .status-btn.current[data-s="todo"]        { background: rgba(107,122,155,0.2); }
 .status-btn.current[data-s="in-progress"] { background: rgba(79,126,248,0.2);  }
 .status-btn.current[data-s="review"]      { background: rgba(214,158,46,0.2);  }
 .status-btn.current[data-s="done"]        { background: rgba(56,161,105,0.2);  }
 .status-btn.current[data-s="blocked"]     { background: rgba(229,62,62,0.2);   }
+.status-btn.current[data-s="backlog"]     { background: rgba(159,122,234,0.2); }
+.status-btn.current[data-s="archived"]    { background: rgba(113,128,150,0.2); }
 
 .dep-link { font-family: var(--mono); font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; margin-right: 6px; }
 

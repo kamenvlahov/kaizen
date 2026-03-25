@@ -9,7 +9,7 @@ const TaskDetail = (() => {
   let _selectedModel = null;
   let _refinedResult = null;
 
-  const STATUSES = ['todo', 'in-progress', 'review', 'done', 'blocked'];
+  const STATUSES = ['backlog', 'todo', 'in-progress', 'review', 'done', 'blocked', 'archived'];
 
   function open(project, taskId, closeCb, updatedCb) {
     currentProject = project;

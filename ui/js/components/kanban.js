@@ -1,11 +1,13 @@
 /* Kanban board with drag & drop */
 const Kanban = (() => {
   const COLUMNS = [
+    { status: 'backlog',     label: 'Backlog' },
     { status: 'todo',        label: 'Todo' },
     { status: 'in-progress', label: 'In Progress' },
     { status: 'review',      label: 'Review' },
     { status: 'done',        label: 'Done' },
     { status: 'blocked',     label: 'Blocked' },
+    { status: 'archived',    label: 'Archived' },
   ];
 
   let currentProject = null;

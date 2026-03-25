@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const matter = require('gray-matter');
 
-const VALID_STATUSES = ['todo', 'in-progress', 'review', 'done', 'blocked'];
+const VALID_STATUSES = ['todo', 'in-progress', 'review', 'done', 'blocked', 'backlog', 'archived'];
 const VALID_PRIORITIES = ['critical', 'high', 'medium', 'low'];
 const VALID_ASSIGNEES = ['claude-code', 'human', 'unassigned'];
 
