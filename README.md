@@ -75,6 +75,7 @@ Base URL: `http://localhost:3000/api`
 | `GET` | `/api/projects/:name` | Get project details and task stats |
 | `POST` | `/api/projects` | Register a new project — body: `{ "name": "", "path": "" }` |
 | `DELETE` | `/api/projects/:name` | Unregister a project |
+| `POST` | `/api/projects/:name/start-claude` | Open a new Windows Terminal tab in the project directory and start Claude Code |
 
 ### Tasks
 
@@ -127,6 +128,32 @@ Connect to `http://localhost:3000` with Socket.IO. The server emits these events
 | `task:deleted` | `{ project, taskId }` |
 
 You can also emit `project:changed` with `{ name }` to tell the server which project the client is currently viewing.
+
+## Start Claude
+
+The **▶ Start Claude** button appears in the top-right corner of the UI when a project is selected. Clicking it opens a new Windows Terminal tab, changes into the project directory, and launches `claude` (Claude Code CLI) — so you can start working on tasks immediately without leaving the browser.
+
+**Requirements:**
+
+- Running on Windows with WSL2
+- [Windows Terminal](https://aka.ms/terminal) installed
+- [Claude Code](https://claude.ai/code) CLI installed (`npm install -g @anthropic-ai/claude-code` or follow the official docs)
+
+**How it works:**
+
+1. Open the Kaizen UI at `http://localhost:3000`
+2. Select a project from the sidebar
+3. Click **▶ Start Claude** in the top-right corner
+4. A new Windows Terminal tab opens in the project directory with Claude Code running
+
+The button calls `POST /api/projects/:name/start-claude` on the server. The server converts the Linux path to a WSL2 UNC path (`\\wsl$\<distro>\...`) and spawns `wt.exe` with the `--startingDirectory` flag.
+
+**Environment variables (optional):**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WSL_DISTRO_NAME` | `Ubuntu` | Name of your WSL2 distro |
+| `WT_EXE` | `wt.exe` | Path to Windows Terminal executable |
 
 ## AI Task Refinement (Ollama)
 
