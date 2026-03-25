@@ -20,11 +20,13 @@ const projectsRouter = require('./routes/projects');
 const tasksRouter    = require('./routes/tasks');
 const boardRouter    = require('./routes/board');
 const browseRouter   = require('./routes/browse');
+const aiRouter       = require('./routes/ai');
 
 app.use('/api/projects', projectsRouter);
 app.use('/api/projects/:name/tasks', tasksRouter);
 app.use('/api/projects/:name/board', boardRouter);
 app.use('/api/browse', browseRouter);
+app.use('/api/ai', aiRouter);
 
 // Expose io so routes can call watchProject after POST /api/projects
 app.set('io', io);
