@@ -153,7 +153,7 @@ router.post('/:name/start-claude', (req, res) => {
   const command = `bash -c "claude"`;
 
   try {
-    spawn(wtExe, ['new-tab', '--startingDirectory', uncPath, 'bash', '-c', 'claude'], {
+    spawn(wtExe, ['new-tab', '--startingDirectory', uncPath, 'bash', '-lc', 'claude'], {
       detached: true,
       stdio: 'ignore',
     }).unref();
