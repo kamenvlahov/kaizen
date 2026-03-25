@@ -2,6 +2,8 @@
 
 const express = require('express');
 const router = express.Router();
+const { spawn } = require('child_process');
+const fs = require('fs');
 const {
   listProjects,
   getProject,
@@ -132,6 +134,34 @@ router.post('/:name/git-test', async (req, res) => {
 
   const result = await gitService.testConnection(platform, git.token);
   res.json(result);
+});
+
+// POST /api/projects/:name/start-claude
+router.post('/:name/start-claude', (req, res) => {
+  const project = getProject(req.params.name);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+
+  const projectPath = project.path;
+  if (!projectPath || !fs.existsSync(projectPath)) {
+    return res.status(400).json({ error: 'Project path does not exist' });
+  }
+
+  // Convert Linux path to UNC path for WSL2: /home/user/... -> \\wsl$\Ubuntu\home\user\...
+  const wslDistro = process.env.WSL_DISTRO_NAME || 'Ubuntu';
+  const wtExe = process.env.WT_EXE || 'wt.exe';
+  const uncPath = `\\\\wsl$\\${wslDistro}${projectPath.replace(/\//g, '\\')}`;
+  const command = `bash -c "claude"`;
+
+  try {
+    spawn(wtExe, ['new-tab', '--startingDirectory', uncPath, 'bash', '-c', 'claude'], {
+      detached: true,
+      stdio: 'ignore',
+    }).unref();
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;
