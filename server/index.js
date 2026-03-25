@@ -61,7 +61,7 @@ app.get('*', (req, res) => {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 const config = readConfig();
-const PORT = config.port || 3000;
+const PORT = process.env.PORT || config.port || 3000;
 
 server.listen(PORT, () => {
   console.log(`Kaizen running at http://localhost:${PORT}`);

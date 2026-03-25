@@ -8,11 +8,14 @@
   },
   "scripts": {
     "start": "node server/index.js",
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "playwright test"
   },
   "jest": {
     "testEnvironment": "jsdom",
-    "testMatch": ["**/tests/**/*.test.js"]
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
   },
   "dependencies": {
     "chalk": "^4.1.2",
@@ -25,6 +28,7 @@
     "socket.io": "^4.7.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0"
   }
