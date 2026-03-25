@@ -34,11 +34,44 @@
     });
   });
 
+  // ── Start Claude button ───────────────────────────────────────────────────────
+  const startClaudeBtn = document.getElementById('start-claude-btn');
+
+  function updateStartClaudeBtn(project) {
+    if (project && project.path) {
+      startClaudeBtn.style.display = '';
+      startClaudeBtn.disabled = false;
+    } else {
+      startClaudeBtn.style.display = 'none';
+    }
+  }
+
+  startClaudeBtn.addEventListener('click', async () => {
+    if (!activeProject) return;
+    startClaudeBtn.disabled = true;
+    startClaudeBtn.textContent = 'Starting…';
+    try {
+      await API.startClaude(activeProject.name);
+      startClaudeBtn.textContent = '✓ Claude started';
+      setTimeout(() => {
+        startClaudeBtn.textContent = '▶ Start Claude';
+        startClaudeBtn.disabled = false;
+      }, 2000);
+    } catch (err) {
+      startClaudeBtn.textContent = '✗ ' + err.message;
+      setTimeout(() => {
+        startClaudeBtn.textContent = '▶ Start Claude';
+        startClaudeBtn.disabled = false;
+      }, 3000);
+    }
+  });
+
   // ── Project switcher ─────────────────────────────────────────────────────────
   ProjectSwitcher.init(
     document.getElementById('project-switcher-mount'),
     async project => {
       activeProject = project;
+      updateStartClaudeBtn(project);
       showNormalViews();
       // Notify WebSocket server
       if (window._socket) window._socket.emit('project:changed', { name: project.name });
