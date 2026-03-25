@@ -151,7 +151,7 @@ router.post('/:name/start-claude', (req, res) => {
   const wtExe = process.env.WT_EXE || 'wt.exe';
   const uncPath = `\\\\wsl$\\${wslDistro}${projectPath.replace(/\//g, '\\')}`;
   try {
-    const child = spawn(wtExe, ['new-tab', '--startingDirectory', uncPath, '--', 'bash', '-lc', `cd "${projectPath}" && source ~/.nvm/nvm.sh && echo "провери задачите си" | claude`], {
+    const child = spawn(wtExe, ['new-tab', '--startingDirectory', uncPath, '--', 'bash', '-lc', `cd "${projectPath}" && source ~/.nvm/nvm.sh && claude "провери задачите си"`], {
       detached: true,
       stdio: 'ignore',
     });
