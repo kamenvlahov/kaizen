@@ -4,6 +4,12 @@ File-based task board for developers working with AI coding assistants.
 
 Tasks are plain Markdown files with YAML frontmatter stored in a centralized directory. A symlink at `{project}/.tasks` gives both humans and AI assistants direct access. Changes are reflected in real time in the web UI via WebSocket.
 
+## Requirements
+
+- Node.js 18 or later
+- npm
+- [Ollama](https://ollama.com) (optional — required for AI task refinement)
+
 ## Installation
 
 ```bash
@@ -20,7 +26,16 @@ npm start
 # → http://localhost:3000
 ```
 
-The port defaults to `3000`. You can override it by setting `port` in `config.json`.
+The port defaults to `3000`. You can override it by adding a `port` field to `config.json`:
+
+```json
+{
+  "port": 4000,
+  "projects": []
+}
+```
+
+> `config.json` is created automatically on first `kaizen init` and is gitignored.
 
 ## CLI
 
@@ -112,6 +127,62 @@ Connect to `http://localhost:3000` with Socket.IO. The server emits these events
 | `task:deleted` | `{ project, taskId }` |
 
 You can also emit `project:changed` with `{ name }` to tell the server which project the client is currently viewing.
+
+## AI Task Refinement (Ollama)
+
+Kaizen integrates with [Ollama](https://ollama.com) to let you refine tasks using a local LLM. When you open a task for editing in the UI, a **Refine** button sends the task title and description to Ollama, which returns a structured refinement with subtasks and suggested skills.
+
+### Setup
+
+1. Install Ollama: https://ollama.com/download
+
+2. Pull a model (default is `qwen2.5:7b`):
+
+   ```bash
+   ollama pull qwen2.5:7b
+   ```
+
+3. Make sure Ollama is running before starting Kaizen:
+
+   ```bash
+   ollama serve
+   ```
+
+4. Start Kaizen as usual:
+
+   ```bash
+   npm start
+   ```
+
+To use a different model, set the `OLLAMA_MODEL` environment variable:
+
+```bash
+OLLAMA_MODEL=llama3.2 npm start
+```
+
+### How it works
+
+The **Refine** button in the task edit panel calls `POST /api/ai/refine-task` with the task title, description, and optionally a task type. Ollama returns a JSON payload that is applied back to the edit form:
+
+```json
+{
+  "refinedTitle": "...",
+  "refinedDescription": "...",
+  "subtasks": ["..."],
+  "suggestedSkills": ["..."]
+}
+```
+
+If Ollama is not running the server returns a `503` and the UI shows an error — the rest of Kaizen continues to work normally.
+
+### AI API reference
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/ai/models` | List available Ollama models |
+| `POST` | `/api/ai/refine-task` | Refine a task — body: `{ "title", "description", "type", "model" }` |
+
+The `model` field in the request body is optional and defaults to `OLLAMA_MODEL` env var or `qwen2.5:7b`.
 
 ## Task file format
 
