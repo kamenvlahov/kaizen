@@ -7,7 +7,7 @@ const ListView = (() => {
   let filters = { search: '', status: '', priority: '', assignee: '' };
   let onRowClick = null;
 
-  const STATUSES   = ['', 'todo', 'in-progress', 'review', 'done', 'blocked'];
+  const STATUSES   = ['', 'backlog', 'todo', 'in-progress', 'review', 'done', 'blocked', 'archived'];
   const PRIORITIES = ['', 'critical', 'high', 'medium', 'low'];
   const ASSIGNEES  = ['', 'claude-code', 'human', 'unassigned'];
   const PRIORITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
