@@ -244,7 +244,12 @@ const TaskDetail = (() => {
     const model = modelSel ? modelSel.value : undefined;
 
     try {
-      const result = await API.refineTask({ title, description, model });
+      const result = await API.refineTask({
+        title,
+        description,
+        model,
+        project: currentProject ? currentProject.name : undefined,
+      });
       _refinedResult = result;
 
       const subtasksList = result.subtasks.length
@@ -254,7 +259,24 @@ const TaskDetail = (() => {
         ? result.suggestedSkills.map(s => `<span style="display:inline-block;padding:1px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;font-size:11px;margin:2px">${escHtml(s)}</span>`).join('')
         : '<span style="color:var(--text-dim)">—</span>';
 
+      const openQuestions = result.openQuestions || [];
+      const questionsBlock = openQuestions.length
+        ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+             <div style="font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Open Questions</div>
+             <ul style="margin:0;padding-left:18px">${openQuestions.map(q => `<li style="margin-bottom:4px">${escHtml(q)}</li>`).join('')}</ul>
+           </div>`
+        : '';
+
+      const contextUsed = result.contextUsed || [];
+      const contextRow = contextUsed.length
+        ? `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+             <div style="font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Project Context Used</div>
+             <div>${contextUsed.map(c => `<span style="display:inline-block;padding:1px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;font-size:11px;margin:2px">${escHtml(c)}</span>`).join('')}</div>
+           </div>`
+        : `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-dim)">Refined without project context</div>`;
+
       content.innerHTML = `
+        ${contextRow}
         <div style="margin-bottom:10px">
           <div style="font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Refined Title</div>
           <div style="color:var(--text-bright)">${escHtml(result.refinedTitle)}</div>
@@ -270,7 +292,8 @@ const TaskDetail = (() => {
         <div>
           <div style="font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Suggested Skills</div>
           <div>${skillsList}</div>
-        </div>`;
+        </div>
+        ${questionsBlock}`;
 
       preview.style.display = 'block';
 
@@ -320,6 +343,13 @@ const TaskDetail = (() => {
     if (result.subtasks && result.subtasks.length) {
       const checklist = result.subtasks.map(s => `- [ ] ${s}`).join('\n');
       updated = replaceSection(updated, 'Subtasks', checklist);
+    }
+    if (result.openQuestions && result.openQuestions.length) {
+      // Its own section, so answering a question never overwrites existing content
+      const list = result.openQuestions.map(q => `- ${q}`).join('\n');
+      updated = updated.includes('## Open Questions')
+        ? replaceSection(updated, 'Open Questions', list)
+        : `${updated.trimEnd()}\n\n## Open Questions\n\n${list}\n`;
     }
     return updated;
   }

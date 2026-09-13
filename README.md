@@ -159,6 +159,8 @@ The button calls `POST /api/projects/:name/start-claude` on the server. The serv
 
 Kaizen integrates with [Ollama](https://ollama.com) to let you refine tasks using a local LLM. When you open a task for editing in the UI, a **Refine** button sends the task title and description to Ollama, which returns a structured refinement with subtasks and suggested skills.
 
+The refinement is **grounded in the target project** — Kaizen reads the project's own files and feeds them to the model, so it names real modules instead of inventing plausible-looking ones.
+
 ### Setup
 
 1. Install Ollama: https://ollama.com/download
@@ -196,20 +198,49 @@ The **Refine** button in the task edit panel calls `POST /api/ai/refine-task` wi
   "refinedTitle": "...",
   "refinedDescription": "...",
   "subtasks": ["..."],
-  "suggestedSkills": ["..."]
+  "suggestedSkills": ["..."],
+  "openQuestions": ["..."],
+  "contextUsed": ["package.json", "CLAUDE.md", "file tree", "existing tasks"]
 }
 ```
 
+### Open questions
+
+Rather than silently inventing an answer to something the task never specified, the model returns up to three `openQuestions` — scope, trigger conditions, unstated limits. They appear in the refine preview and, on **Apply**, are written into the task: an `**Open questions:**` block in the new-task form, or a dedicated `## Open Questions` section in the task body when refining an existing task (existing sections are left untouched).
+
+A task with nothing genuinely unresolved returns an empty list. On a 7B model this is advisory, not exact — it occasionally asks about an already-clear task, which costs one click to ignore.
+
 If Ollama is not running the server returns a `503` and the UI shows an error — the rest of Kaizen continues to work normally.
+
+### Project context
+
+When the request carries a `project` name, `server/services/projectContext.js` assembles a context block from the registered project's own directory and prepends it to the prompt. Sources, each with its own character budget:
+
+| Source | What is sent |
+|--------|--------------|
+| `package.json` | Name, description, dependencies, devDependencies, scripts — the real tech stack |
+| `CLAUDE.md` | The project's conventions and constraints (falls back to `README.md` if absent) |
+| File tree | Directories and filenames to depth 4, skipping `node_modules`, `.git`, build output and other noise |
+| Existing tasks | `TASK-NNN [status] Title` for every non-archived task, so the model avoids restating work already on the board |
+
+No single directory can contribute more than 12 entries to the tree, so one folder full of generated fixtures cannot crowd out the actual source directories.
+
+Context is read from disk on every request — nothing is cached, matching Kaizen's file-system-as-source-of-truth rule.
+
+The response field `contextUsed` lists which sources were actually found, and the UI shows them as chips above the refined preview. Context gathering never fails a refinement: an unregistered project, a missing path or an unreadable file simply yields `"contextUsed": []` and the model is prompted without it.
+
+**Note on small models:** grounding sharply improves file and module accuracy, but a 7B model can still occasionally name a technology that is not in the stack. Larger models via `OLLAMA_MODEL` reduce this.
 
 ### AI API reference
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/ai/models` | List available Ollama models |
-| `POST` | `/api/ai/refine-task` | Refine a task — body: `{ "title", "description", "type", "model" }` |
+| `POST` | `/api/ai/refine-task` | Refine a task — body: `{ "title", "description", "type", "model", "project" }` |
 
 The `model` field in the request body is optional and defaults to `OLLAMA_MODEL` env var or `qwen2.5:7b`.
+
+The `project` field is optional — pass a registered project name to ground the refinement in that project's files. Omit it and the task is refined from its title and description alone.
 
 ## Task file format
 
