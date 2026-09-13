@@ -3,6 +3,8 @@
 const express = require('express');
 const router = express.Router();
 
+const projectContext = require('../services/projectContext');
+
 const OLLAMA_BASE = 'http://localhost:11434';
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:7b';
 const TIMEOUT_MS = 30000;
@@ -16,13 +18,25 @@ Rules:
 - Surface all implied subtasks
 - Be specific about files, functions, or modules involved when inferable
 - Suggest relevant skills or context the AI assistant will need
+- Where the task leaves a decision genuinely unspecified, put that decision in "openQuestions" instead of quietly inventing an answer. Scope, trigger conditions, where something is surfaced to the user, and limits nobody stated are the usual gaps. Inventing a plausible answer to one of these is a failure, not a refinement.
+- Do not ask what the project context already answers, and do not ask the reader to confirm a choice you already made. Ask at most 3, each answerable in one line. Nothing genuinely unresolved means an empty list.
+
+When a "Project Context" section is provided, ground the refinement in it:
+- Name real files, directories and modules from the project structure — never invent paths
+- Follow the conventions and constraints stated in the project's CLAUDE.md
+- Match the actual tech stack from package.json. Never name a framework, library or language feature that does not appear in the dependencies or the file tree — in particular, do not assume React, Vue, TypeScript or JSX unless they are listed
+- Check the existing tasks and do not restate work already covered by another task; reference sibling tasks by ID when relevant
+- Draw suggested skills only from technologies that appear in the provided context
+
+Before answering, re-read the dependency list in the context. Every technology you name in "suggestedSkills" must appear there or in the file tree.
 
 Respond ONLY with valid JSON in this exact shape, no markdown fences:
 {
   "refinedTitle": "string",
   "refinedDescription": "string",
   "subtasks": ["string"],
-  "suggestedSkills": ["string"]
+  "suggestedSkills": ["string"],
+  "openQuestions": ["string"]
 }`;
 
 async function fetchWithTimeout(url, options, timeoutMs) {
@@ -56,14 +70,21 @@ router.get('/models', async (req, res) => {
 
 // POST /api/ai/refine-task — refine a task using Ollama
 router.post('/refine-task', async (req, res) => {
-  const { title, description, type } = req.body || {};
+  const { title, description, type, project } = req.body || {};
 
   if (!title && !description) {
     return res.status(400).json({ error: 'At least one of title or description is required' });
   }
 
   const model = req.body.model || DEFAULT_MODEL;
+
+  // Optional: ground the refinement in the target project. Never fatal — an
+  // unregistered or unreadable project just yields no context.
+  const context = projectContext.build(project);
+
   const userContent = [
+    context ? `## Project Context\n\n${context.text}` : null,
+    context ? '## Task to refine' : null,
     type ? `Task type: ${type}` : null,
     title ? `Title: ${title}` : null,
     description ? `Description:\n${description}` : null,
@@ -119,7 +140,9 @@ router.post('/refine-task', async (req, res) => {
       refinedDescription: parsed.refinedDescription || description || '',
       subtasks: Array.isArray(parsed.subtasks) ? parsed.subtasks : [],
       suggestedSkills: Array.isArray(parsed.suggestedSkills) ? parsed.suggestedSkills : [],
+      openQuestions: Array.isArray(parsed.openQuestions) ? parsed.openQuestions.slice(0, 3) : [],
       model,
+      contextUsed: context ? context.sources : [],
     });
   } catch (err) {
     if (err.name === 'AbortError') {
