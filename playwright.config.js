@@ -9,7 +9,10 @@ module.exports = defineConfig({
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:3001',
-    headless: true,
+    headless: false,
+    launchOptions: {
+      slowMo: process.env.SLOW_MO ? parseInt(process.env.SLOW_MO) : 0,
+    },
   },
   webServer: {
     command: 'PORT=3001 node server/index.js',
