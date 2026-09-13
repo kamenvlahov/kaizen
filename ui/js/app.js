@@ -58,11 +58,16 @@
         startClaudeBtn.disabled = false;
       }, 2000);
     } catch (err) {
-      startClaudeBtn.textContent = '✗ ' + err.message;
+      // The server's explanation is a full sentence — too long for a button, so
+      // the label stays short and the detail goes in the tooltip.
+      startClaudeBtn.textContent = '✗ Terminal did not start';
+      startClaudeBtn.title = err.message;
+      console.error('[start-claude]', err.message);
       setTimeout(() => {
         startClaudeBtn.textContent = '▶ Start Claude';
+        startClaudeBtn.title = '';
         startClaudeBtn.disabled = false;
-      }, 3000);
+      }, 6000);
     }
   });
 

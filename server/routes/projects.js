@@ -136,8 +136,73 @@ router.post('/:name/git-test', async (req, res) => {
   res.json(result);
 });
 
+// How long to watch a freshly spawned terminal before calling the launch good.
+// A working launch keeps running, so anything that exits inside this window
+// failed to start; anything still alive after it is treated as success.
+const LAUNCH_SETTLE_MS = 2000;
+
+// WSL2's interop channel to the Windows host times out intermittently. It shows
+// up as this message on stderr and the terminal never appears. A retry usually
+// lands, so it is worth one before giving up.
+const INTEROP_ERROR = /UtilAcceptVsock|accept4 failed|failed to (?:launch|start) interop/i;
+
+const MAX_LAUNCH_ATTEMPTS = 2;
+
+/**
+ * Spawn the terminal once and wait long enough to see whether it survived.
+ * Resolves { ok: true } when the process is still running after the settle
+ * window, otherwise { ok: false, reason, transient } describing the failure.
+ */
+function launchTerminal(wtExe, args) {
+  return new Promise(resolve => {
+    let child;
+    try {
+      // stderr is piped rather than ignored — it carries the interop error that
+      // explains an otherwise silent failure.
+      child = spawn(wtExe, args, { detached: true, stdio: ['ignore', 'ignore', 'pipe'] });
+    } catch (err) {
+      return resolve({ ok: false, reason: err.message, transient: false });
+    }
+
+    let stderr = '';
+    let settled = false;
+
+    const finish = result => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(result);
+    };
+
+    if (child.stderr) {
+      child.stderr.setEncoding('utf8');
+      child.stderr.on('data', chunk => { stderr += chunk; });
+    }
+
+    child.on('error', err => {
+      finish({
+        ok: false,
+        reason: err.code === 'ENOENT' ? `Terminal executable not found: ${wtExe}` : err.message,
+        transient: false,
+      });
+    });
+
+    child.on('exit', code => {
+      if (code === 0) return finish({ ok: true });
+      const detail = stderr.trim().split('\n').pop() || `exit code ${code}`;
+      finish({ ok: false, reason: detail, transient: INTEROP_ERROR.test(stderr) });
+    });
+
+    // Still alive after the settle window — the terminal is up.
+    const timer = setTimeout(() => {
+      child.unref();
+      finish({ ok: true });
+    }, LAUNCH_SETTLE_MS);
+  });
+}
+
 // POST /api/projects/:name/start-claude
-router.post('/:name/start-claude', (req, res) => {
+router.post('/:name/start-claude', async (req, res) => {
   const project = getProject(req.params.name);
   if (!project) return res.status(404).json({ error: 'Project not found' });
 
@@ -150,22 +215,24 @@ router.post('/:name/start-claude', (req, res) => {
   const wslDistro = process.env.WSL_DISTRO_NAME || 'Ubuntu';
   const wtExe = process.env.WT_EXE || 'wt.exe';
   const uncPath = `\\\\wsl$\\${wslDistro}${projectPath.replace(/\//g, '\\')}`;
-  try {
-    const child = spawn(wtExe, ['new-tab', '--startingDirectory', uncPath, '--', 'bash', '-lc', `cd "${projectPath}" && source ~/.nvm/nvm.sh && claude "провери задачите си"`], {
-      detached: true,
-      stdio: 'ignore',
-    });
+  const args = ['new-tab', '--startingDirectory', uncPath, '--', 'bash', '-lc', `cd "${projectPath}" && source ~/.nvm/nvm.sh && claude "провери задачите си"`];
 
-    child.on('error', (err) => {
-      console.error(`[start-claude] spawn error: ${err.message} (code: ${err.code}, path: ${wtExe})`);
-    });
-
-    child.unref();
-    res.json({ success: true });
-  } catch (err) {
-    console.error(`[start-claude] failed to spawn: ${err.message}`);
-    res.status(500).json({ error: err.message });
+  let last = null;
+  for (let attempt = 1; attempt <= MAX_LAUNCH_ATTEMPTS; attempt++) {
+    last = await launchTerminal(wtExe, args);
+    if (last.ok) {
+      if (attempt > 1) console.log(`[start-claude] launched on attempt ${attempt}`);
+      return res.json({ success: true, attempts: attempt });
+    }
+    console.error(`[start-claude] attempt ${attempt} failed: ${last.reason}`);
+    if (!last.transient) break;
   }
+
+  const message = last.transient
+    ? 'WSL interop timed out — the terminal did not start. Retrying often works; if it keeps failing, run "wsl --shutdown" from Windows and reopen WSL.'
+    : `Could not start the terminal: ${last.reason}`;
+
+  res.status(502).json({ error: message, detail: last.reason });
 });
 
 module.exports = router;
