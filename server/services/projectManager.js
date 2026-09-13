@@ -1,9 +1,27 @@
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const CONFIG_PATH = path.join(__dirname, '../../config.json');
+
+/**
+ * Normalize a user-supplied project path: expand a leading ~, make it absolute
+ * and drop any trailing separator.
+ *
+ * The UI's path browser (`/api/browse`) already expands ~ when it suggests and
+ * validates directories, so registration has to accept the same input —-
+ * otherwise a path the form marked valid is rejected on submit.
+ */
+function normalizeProjectPath(projectPath) {
+  if (!projectPath) return projectPath;
+  let expanded = String(projectPath).trim();
+  if (expanded === '~' || expanded.startsWith('~/')) {
+    expanded = os.homedir() + expanded.slice(1);
+  }
+  return path.resolve(expanded);
+}
 
 function readConfig() {
   if (!fs.existsSync(CONFIG_PATH)) {
@@ -41,8 +59,14 @@ function registerProject(name, projectPath, gitConfig = null) {
     throw new Error(`Project "${name}" is already registered`);
   }
 
+  projectPath = normalizeProjectPath(projectPath);
+
   if (!fs.existsSync(projectPath)) {
     throw new Error(`Path does not exist: ${projectPath}`);
+  }
+
+  if (!fs.statSync(projectPath).isDirectory()) {
+    throw new Error(`Path is not a directory: ${projectPath}`);
   }
 
   const tasksRelDir = `projects/${name}/tasks`;
@@ -146,6 +170,7 @@ function injectClaudeMd(projectPath) {
 
 module.exports = {
   readConfig,
+  normalizeProjectPath,
   listProjects,
   getProject,
   registerProject,
